@@ -20,15 +20,15 @@ type Transport interface {
 	ReceiveMessages(src URI, lastReceived lseq) ([]Message, error)
 }
 
-type client struct {
+type ircTransport struct {
 }
 
-func (c *client) SendMessages(dest URI, msgs []Message) error {
+func (c *ircTransport) SendMessages(dest URI, msgs []Message) error {
 	//TODO
 	panic("implement me")
 }
 
-func (c *client) ReceiveMessages(src URI, lastReceived lseq) ([]Message, error) {
+func (c *ircTransport) ReceiveMessages(src URI, lastReceived lseq) ([]Message, error) {
 	//TODO
 	panic("implement me")
 }
