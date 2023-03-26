@@ -10,6 +10,7 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import android.view.Menu
 import android.view.MenuItem
 import com.transport.irc_messenger.databinding.ActivityMainBinding
+import irc_transport.*
 
 class MainActivity : AppCompatActivity() {
 
@@ -27,6 +28,10 @@ class MainActivity : AppCompatActivity() {
         val navController = findNavController(R.id.nav_host_fragment_content_main)
         appBarConfiguration = AppBarConfiguration(navController.graph)
         setupActionBarWithNavController(navController, appBarConfiguration)
+
+        val bruh = irc_transport.Irc_transport.newIRCTransport("#bruh_test_kotel")
+        //val msg = irc_transport.Message()
+        //bruh.SendMessages("test_test_test_kotel", msg)
 
         binding.fab.setOnClickListener { view ->
             Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)

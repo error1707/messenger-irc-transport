@@ -1,6 +1,6 @@
 /build
-.jar
-.aar
+*.jar
+*.aar
 *.iml
 .gradle
 /local.properties
