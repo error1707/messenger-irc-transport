@@ -14,11 +14,11 @@ import (
 )
 
 type Message struct {
-	MessageId uint64    `json:"message_id"`
-	ParentId  uint64    `json:"parent_id"`
+	MessageId int64    `json:"message_id"`
+	ParentId  int64    `json:"parent_id"`
 	UserId    string    `json:"user_id"`
 	Text      string    `json:"text"`
-	Timestamp time.Time `json:"timestamp"`
+	Timestamp int64 `json:"timestamp"`
 }
 
 const MessageCommand = "PRIVMSG"
@@ -74,9 +74,10 @@ func NewIrcTransport(username string) (*IrcTransport, error) {
 	return transport, nil
 }
 
-func SendMessages(t *IrcTransport, dest string, msgs []Message) error {
+func (t *IrcTransport) SendMessages(dest string, msgs *Message) error {
 	var errs error
-	for _, msg := range msgs {
+	var msg = *msgs
+	{
 		body, _ := json.Marshal(msg)
 		err := t.ircClient.WriteMessage(&irc.Message{
 			Prefix:  t.defaultPrefix.Copy(),
@@ -90,7 +91,7 @@ func SendMessages(t *IrcTransport, dest string, msgs []Message) error {
 	return errs
 }
 
-func (t *IrcTransport) ReceiveMessages(src string, lastReceived uint64) ([]Message, error) {
+func (t *IrcTransport) ReceiveMessages(src string, lastReceived uint64) (Message, error) {
 	rawValue, _ := t.receiveChannels.LoadOrStore(src, make(chan *Message, MessageReceiveBufferSize))
 	msgChan := rawValue.(chan *Message)
 	var received []Message
@@ -103,7 +104,7 @@ outer:
 			break outer
 		}
 	}
-	return received, nil
+	return received[0], nil
 }
 
 func (t *IrcTransport) messageHandler(client *irc.Client, msg *irc.Message) {
