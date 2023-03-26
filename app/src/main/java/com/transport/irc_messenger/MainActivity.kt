@@ -29,9 +29,8 @@ class MainActivity : AppCompatActivity() {
         appBarConfiguration = AppBarConfiguration(navController.graph)
         setupActionBarWithNavController(navController, appBarConfiguration)
 
-        val bruh = irc_transport.Irc_transport.newIRCTransport("#bruh_test_kotel")
-        //val msg = irc_transport.Message()
-        //bruh.SendMessages("test_test_test_kotel", msg)
+        val bruh = irc_transport.Irc_transport.newIrcTransport("bruh_test_kotel")
+        val msg = irc_transport.Message()
 
         binding.fab.setOnClickListener { view ->
             Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
