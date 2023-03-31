@@ -28,20 +28,6 @@ class MainActivity : AppCompatActivity() {
         val navController = findNavController(R.id.nav_host_fragment_content_main)
         appBarConfiguration = AppBarConfiguration(navController.graph)
         setupActionBarWithNavController(navController, appBarConfiguration)
-
-        val bruh = irc_transport.Irc_transport.newIrcTransport("bruh_test_kotel")
-        val msg = irc_transport.Message()
-        msg.setUserId("aaa")
-        msg.setText("BRUH BRUH BRUH")
-        msg.setMessageId(42)
-        msg.setParentId(42)
-        msg.setTimestamp(102093)
-        bruh.sendMessages("#test_kotel_channel", msg)
-
-        binding.fab.setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show()
-        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

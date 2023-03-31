@@ -32,8 +32,15 @@ class FirstFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val bruh = irc_transport.Irc_transport.newIrcTransport("bruh_test_kotel")
+        val msg = irc_transport.Message()
+        msg.setUserId("aaa")
+        msg.setText("BRUH BRUH BRUH")
+        msg.setMessageId(42)
+        msg.setParentId(42)
+        msg.setTimestamp(102093)
         binding.buttonFirst.setOnClickListener {
-            findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
+            bruh.sendMessages("#test_kotel_channel", msg)
         }
     }
 
