@@ -30,14 +30,15 @@ func (s *IRCTransportTestSuite) TestSendMessages() {
 	someMessage := "some message"
 	waiter := make(chan struct{})
 	go func() {
-		s.client2.ReceiveMessages("test_user_1", func(msg string) bool {
-			s.Assert().Equal(someMessage, msg)
-			return false
-		})
+		s.client2.StartReceiveMessagesFrom("test_user_1")
+		<-time.After(time.Second)
+		msg, err := s.client2.GetMessageFrom("test_user_1")
+		s.Require().NoError(err)
+		s.Assert().Equal(someMessage, msg)
 		close(waiter)
 	}()
 
-	err := s.client1.SendMessages("test_user_2", []string{someMessage})
+	err := s.client1.SendMessages("test_user_2", someMessage)
 	s.Require().NoError(err)
 	select {
 	case <-waiter:

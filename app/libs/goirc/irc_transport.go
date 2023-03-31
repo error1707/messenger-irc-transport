@@ -3,6 +3,7 @@ package irc_transport
 import (
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"sync"
@@ -71,14 +72,24 @@ func (t *IrcTransport) SendMessages(dest string, msg string) error {
 	})
 }
 
-func (t *IrcTransport) ReceiveMessages(src string, handler *func(string) bool) {
-	msgChan := make(chan string, MessageReceiveBufferSize)
-	t.receiveChannels.Store(src, msgChan)
-	defer t.receiveChannels.Delete(src)
-	for msg := range msgChan {
-		if !(*handler)(msg) {
-			break
-		}
+func (t *IrcTransport) StartReceiveMessagesFrom(src string) {
+	t.receiveChannels.Store(src, make(chan string, MessageReceiveBufferSize))
+}
+
+func (t *IrcTransport) StopReceiveMessagesFrom(src string) {
+	t.receiveChannels.Delete(src)
+}
+
+func (t *IrcTransport) GetMessageFrom(src string) (string, error) {
+	msgChan, ok := t.receiveChannels.Load(src)
+	if !ok {
+		return "", errors.New("source is not listened")
+	}
+	select {
+	case msg := <-msgChan.(chan string):
+		return msg, nil
+	default:
+		return "", io.EOF
 	}
 }
 

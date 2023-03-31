@@ -20,6 +20,9 @@ class FirstFragment : Fragment() {
     // onDestroyView.
     private val binding get() = _binding!!
 
+    lateinit var chat: IrcTransport
+    var contacts = ArrayList<String>()
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -33,14 +36,33 @@ class FirstFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val bruh = irc_transport.Irc_transport.newIRCTransport("bruh_test_kotel")
-        val msg = "cringe"
+        binding.buttonFirst3.setOnClickListener {
+            chat = Irc_transport.newIRCTransport(binding.editTextTextPersonName3.text.toString())
+        }
+
+        binding.buttonFirst4.setOnClickListener {
+            contacts.add(binding.editTextTextPersonName5.text.toString())
+            chat.startReceiveMessagesFrom(binding.editTextTextPersonName5.text.toString())
+        }
+
         binding.buttonFirst.setOnClickListener {
-            bruh.sendMessages("#test_kotel_channel", msg)
+            chat.sendMessages(binding.editTextTextPersonName5.text.toString(), binding.editTextTextPersonName4.text.toString())
+        }
+
+        binding.buttonFirst2.setOnClickListener {
+            try {
+                val msg: String = chat.getMessageFrom(binding.editTextTextPersonName5.text.toString())
+                binding.editTextTextPersonName.setText(msg)
+            } catch (ex: Exception) {
+                binding.editTextTextPersonName.setText("No new messages from this user")
+            }
         }
     }
 
     override fun onDestroyView() {
+        for (i in contacts) {
+            chat.stopReceiveMessagesFrom(i)
+        }
         super.onDestroyView()
         _binding = null
     }
