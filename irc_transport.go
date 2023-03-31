@@ -77,7 +77,7 @@ func (t *IrcTransport) SendMessages(dest string, msgs []string) error {
 	return errs
 }
 
-func (t *IrcTransport) ReceiveMessages(src string, handler func(string) bool) error {
+func (t *IrcTransport) ReceiveMessages(src string, handler func(string) bool) {
 	msgChan := make(chan string, MessageReceiveBufferSize)
 	t.receiveChannels.Store(src, msgChan)
 	defer t.receiveChannels.Delete(src)
@@ -86,7 +86,6 @@ func (t *IrcTransport) ReceiveMessages(src string, handler func(string) bool) er
 			break
 		}
 	}
-	return nil
 }
 
 func (t *IrcTransport) messageHandler(client *irc.Client, msg *irc.Message) {
