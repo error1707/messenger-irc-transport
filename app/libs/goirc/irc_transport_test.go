@@ -10,8 +10,8 @@ import (
 type IRCTransportTestSuite struct {
 	suite.Suite
 
-	client1 Transport
-	client2 Transport
+	client1 *IrcTransport
+	client2 *IrcTransport
 }
 
 func TestIRCTransportTestSuite(t *testing.T) {
@@ -27,23 +27,21 @@ func (s *IRCTransportTestSuite) SetupSuite() {
 }
 
 func (s *IRCTransportTestSuite) TestSendMessages() {
-	msgs, err := s.client2.ReceiveMessages("test_user_1", 0)
-	s.Require().NoError(err)
-	s.Assert().Len(msgs, 0)
+	someMessage := "some message"
+	waiter := make(chan struct{})
+	go func() {
+		s.client2.ReceiveMessages("test_user_1", func(msg string) bool {
+			s.Assert().Equal(someMessage, msg)
+			return false
+		})
+		close(waiter)
+	}()
 
-	err = s.client1.SendMessages("test_user_2", []Message{
-		{
-			MessageId: 1,
-			ParentId:  1,
-			UserId:    "test_user_2",
-			Text:      "some text",
-			Timestamp: time.Now(),
-		},
-	})
+	err := s.client1.SendMessages("test_user_2", []string{someMessage})
 	s.Require().NoError(err)
-	time.Sleep(2 * time.Second)
-
-	msgs, err = s.client2.ReceiveMessages("test_user_1", 0)
-	s.Require().NoError(err)
-	s.Assert().Len(msgs, 1)
+	select {
+	case <-waiter:
+	case <-time.After(5 * time.Second):
+		s.FailNow("wait for message to long")
+	}
 }
