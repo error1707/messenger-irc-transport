@@ -1,7 +1,6 @@
 package irc_transport
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -13,23 +12,10 @@ import (
 	"gopkg.in/irc.v4"
 )
 
-type Message struct {
-	MessageId uint64    `json:"message_id"`
-	ParentId  uint64    `json:"parent_id"`
-	UserId    string    `json:"user_id"`
-	Text      string    `json:"text"`
-	Timestamp time.Time `json:"timestamp"`
-}
-
-type Transport interface {
-	SendMessages(dest string, msgs []Message) error
-	ReceiveMessages(src string, lastReceived uint64) ([]Message, error)
-}
-
 const MessageCommand = "PRIVMSG"
 const MessageReceiveBufferSize = 32
 
-type ircTransport struct {
+type IrcTransport struct {
 	ircClient       *irc.Client
 	defaultPrefix   *irc.Prefix
 	receiveChannels sync.Map
@@ -37,12 +23,12 @@ type ircTransport struct {
 	initialized chan struct{}
 }
 
-func NewIRCTransport(username string) (Transport, error) {
+func NewIRCTransport(username string) (*IrcTransport, error) {
 	conn, err := net.Dial("tcp", "bitcoin.uk.eu.dal.net:6667")
 	if err != nil {
 		return nil, fmt.Errorf("can't connect to server: %w", err)
 	}
-	transport := &ircTransport{
+	transport := &IrcTransport{
 		defaultPrefix: &irc.Prefix{
 			Name: username,
 			User: username,
@@ -62,9 +48,6 @@ func NewIRCTransport(username string) (Transport, error) {
 	transport.ircClient.Conn.Writer.DebugCallback = func(line string) {
 		log.Printf("[SENT: %s] %s\n", username, line)
 	}
-	//transport.ircClient.Conn.Reader.DebugCallback = func(line string) {
-	//	log.Printf("[DEBUG] %s\n", line)
-	//}
 	go func() {
 		err := transport.ircClient.Run()
 		if err != nil {
@@ -79,15 +62,14 @@ func NewIRCTransport(username string) (Transport, error) {
 	return transport, nil
 }
 
-func (t *ircTransport) SendMessages(dest string, msgs []Message) error {
+func (t *IrcTransport) SendMessages(dest string, msgs []string) error {
 	var errs error
 	for _, msg := range msgs {
-		body, _ := json.Marshal(msg)
 		err := t.ircClient.WriteMessage(&irc.Message{
 			Prefix:  t.defaultPrefix.Copy(),
 			Command: MessageCommand,
 			Params: []string{
-				dest, string(body),
+				dest, msg,
 			},
 		})
 		errs = multierr.Append(errs, err)
@@ -95,23 +77,19 @@ func (t *ircTransport) SendMessages(dest string, msgs []Message) error {
 	return errs
 }
 
-func (t *ircTransport) ReceiveMessages(src string, lastReceived uint64) ([]Message, error) {
-	rawValue, _ := t.receiveChannels.LoadOrStore(src, make(chan *Message, MessageReceiveBufferSize))
-	msgChan := rawValue.(chan *Message)
-	var received []Message
-outer:
-	for {
-		select {
-		case msg := <-msgChan:
-			received = append(received, *msg)
-		default:
-			break outer
+func (t *IrcTransport) ReceiveMessages(src string, handler func(string) bool) error {
+	msgChan := make(chan string, MessageReceiveBufferSize)
+	t.receiveChannels.Store(src, msgChan)
+	defer t.receiveChannels.Delete(src)
+	for msg := range msgChan {
+		if !handler(msg) {
+			break
 		}
 	}
-	return received, nil
+	return nil
 }
 
-func (t *ircTransport) messageHandler(client *irc.Client, msg *irc.Message) {
+func (t *IrcTransport) messageHandler(client *irc.Client, msg *irc.Message) {
 	log.Printf("[RECEIVED: %s] %s\n", t.defaultPrefix.User, msg.String())
 	if msg.Command == "MODE" {
 		select {
@@ -128,12 +106,6 @@ func (t *ircTransport) messageHandler(client *irc.Client, msg *irc.Message) {
 		log.Printf("[WARN: %s] Client not listening for messages from: %s\n", t.defaultPrefix.User, msg.Name)
 		return
 	}
-	msgChan := rawValue.(chan *Message)
-	clientMsg := &Message{}
-	err := json.Unmarshal([]byte(msg.Trailing()), clientMsg)
-	if err != nil {
-		log.Printf("[ERROR] Can't parse message: %v\n", err)
-	}
 	log.Printf("[INFO: %s] Writing to channel: %s\n", t.defaultPrefix.User, msg.Name)
-	msgChan <- clientMsg
+	rawValue.(chan string) <- msg.Trailing()
 }
